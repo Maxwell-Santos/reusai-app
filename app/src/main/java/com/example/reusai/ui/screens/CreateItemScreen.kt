@@ -56,11 +56,10 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,14 +76,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.example.reusai.ui.theme.ReusaiTheme
+import com.example.reusai.ui.viewmodels.CreateItemUiState
+import com.example.reusai.ui.viewmodels.CreateItemViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
@@ -95,66 +97,67 @@ enum class CreateItemStep {
 
 @Composable
 fun CreateItemScreen(
+    viewModel: CreateItemViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
     onPublish: () -> Unit = {}
 ) {
-    var currentStep by remember { mutableStateOf(CreateItemStep.PHOTOS) }
-    
-    // State for Step 1: Photos
-    val photos = remember { mutableStateListOf<Uri>() }
-    var isCompressing by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
+    // Handle error messages
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
+        }
+    }
+
+    CreateItemContent(
+        uiState = uiState,
+        onNavigateBack = { viewModel.previousStep(onNavigateBack) },
+        onNextStep = { viewModel.nextStep() },
+        onPublish = onPublish,
+        onAddPhoto = { uri -> viewModel.addPhoto(context, uri) },
+        onRemovePhoto = { viewModel.removePhoto(it) },
+        onTitleChange = viewModel::onTitleChange,
+        onCategoryChange = viewModel::onCategoryChange,
+        onDescriptionChange = viewModel::onDescriptionChange,
+        onTradeToggle = viewModel::onTradeToggle,
+        onNeverUsedToggle = viewModel::onNeverUsedToggle
+    )
+}
+
+@Composable
+fun CreateItemContent(
+    uiState: CreateItemUiState,
+    onNavigateBack: () -> Unit,
+    onNextStep: () -> Unit,
+    onPublish: () -> Unit,
+    onAddPhoto: (Uri) -> Unit,
+    onRemovePhoto: (Uri) -> Unit,
+    onTitleChange: (String) -> Unit,
+    onCategoryChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onTradeToggle: (Boolean) -> Unit,
+    onNeverUsedToggle: (Boolean) -> Unit
+) {
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
-            uri?.let {
-                scope.launch {
-                    isCompressing = true
-                    try {
-                        val compressedFile = compressImage(context, it)
-                        photos.add(Uri.fromFile(compressedFile))
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Erro ao processar imagem", Toast.LENGTH_SHORT).show()
-                    } finally {
-                        isCompressing = false
-                    }
-                }
-            }
-        }
+        onResult = { uri -> uri?.let { onAddPhoto(it) } }
     )
-    
-    // State for Step 2: Details
-    var title by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var isAvailableForTrade by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
             CreateItemTopBar(
-                currentStep = currentStep,
-                onBack = {
-                    when (currentStep) {
-                        CreateItemStep.PHOTOS -> onNavigateBack()
-                        CreateItemStep.DETAILS -> currentStep = CreateItemStep.PHOTOS
-                        CreateItemStep.REVIEW -> currentStep = CreateItemStep.DETAILS
-                    }
-                }
+                currentStep = uiState.currentStep,
+                onBack = onNavigateBack
             )
         },
         bottomBar = {
-            if (currentStep != CreateItemStep.REVIEW) {
+            if (uiState.currentStep != CreateItemStep.REVIEW) {
                 BottomActionButton(
                     text = "Próximo Passo",
-                    onClick = {
-                        currentStep = when (currentStep) {
-                            CreateItemStep.PHOTOS -> CreateItemStep.DETAILS
-                            CreateItemStep.DETAILS -> CreateItemStep.REVIEW
-                            CreateItemStep.REVIEW -> CreateItemStep.REVIEW
-                        }
-                    }
+                    onClick = onNextStep
                 )
             } else {
                 BottomActionButton(
@@ -168,26 +171,26 @@ fun CreateItemScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .imePadding() // Apply here for overall stability
+                .imePadding()
         ) {
-            StepIndicator(currentStep = currentStep)
+            StepIndicator(currentStep = uiState.currentStep)
             
             Box(modifier = Modifier.weight(1f)) {
-                when (currentStep) {
+                when (uiState.currentStep) {
                     CreateItemStep.PHOTOS -> {
                         PhotosUploadStep(
-                            photos = photos,
+                            photos = uiState.photos,
                             onAddPhoto = {
-                                if (photos.size < 4) {
+                                if (uiState.photos.size < 4) {
                                     photoPickerLauncher.launch(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
                                 }
                             },
-                            onRemovePhoto = { photos.remove(it) }
+                            onRemovePhoto = onRemovePhoto
                         )
                         
-                        if (isCompressing) {
+                        if (uiState.isCompressing) {
                             Box(
                                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                                 contentAlignment = Alignment.Center
@@ -197,14 +200,16 @@ fun CreateItemScreen(
                         }
                     }
                     CreateItemStep.DETAILS -> ItemDetailsStep(
-                        title = title,
-                        onTitleChange = { title = it },
-                        category = category,
-                        onCategoryChange = { category = it },
-                        description = description,
-                        onDescriptionChange = { description = it },
-                        isAvailableForTrade = isAvailableForTrade,
-                        onTradeToggle = { isAvailableForTrade = it }
+                        title = uiState.title,
+                        onTitleChange = onTitleChange,
+                        category = uiState.category,
+                        onCategoryChange = onCategoryChange,
+                        description = uiState.description,
+                        onDescriptionChange = onDescriptionChange,
+                        isAvailableForTrade = uiState.isAvailableForTrade,
+                        onTradeToggle = onTradeToggle,
+                        isNeverUsed = uiState.isNeverUsed,
+                        onNeverUsedToggle = onNeverUsedToggle
                     )
                     CreateItemStep.REVIEW -> ReviewStep()
                 }
@@ -487,11 +492,6 @@ fun InfoBox(icon: ImageVector, text: String) {
     }
 }
 
-data class Categoria(
-    val nome: String,
-    val sub: List<String>
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailsStep(
@@ -502,7 +502,9 @@ fun ItemDetailsStep(
     description: String,
     onDescriptionChange: (String) -> Unit,
     isAvailableForTrade: Boolean,
-    onTradeToggle: (Boolean) -> Unit
+    onTradeToggle: (Boolean) -> Unit,
+    isNeverUsed: Boolean,
+    onNeverUsedToggle: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -665,6 +667,39 @@ fun ItemDetailsStep(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Neve used
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Item nunca usado",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Switch(
+                    checked = isNeverUsed,
+                    onCheckedChange = onNeverUsedToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+            }
+        }
     }
 }
 
@@ -753,6 +788,9 @@ fun BottomActionButton(
 }
 
 private suspend fun compressImage(context: Context, uri: Uri): File = withContext(Dispatchers.IO) {
+    // Note: This is now handled in the ViewModel, but kept here if other parts of UI need it
+    // or if you want to keep the UI's own utility functions separate.
+    // Ideally, move this to a repository or use case.
     val outputFile = File.createTempFile("compressed_", ".jpg", context.cacheDir).apply {
         deleteOnExit()
     }
@@ -780,25 +818,19 @@ private suspend fun compressImage(context: Context, uri: Uri): File = withContex
 @Composable
 fun CreateItemStep1Preview() {
     ReusaiTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Mocking the state for preview
-            var currentStep by remember { mutableStateOf(CreateItemStep.PHOTOS) }
-            val photos = remember { mutableStateListOf<Uri>() }
-            
-            Scaffold(
-                topBar = { CreateItemTopBar(currentStep = currentStep, onBack = {}) },
-                bottomBar = { BottomActionButton(text = "Próximo Passo", onClick = {}) }
-            ) { paddingValues ->
-                Column(modifier = Modifier.padding(paddingValues)) {
-                    StepIndicator(currentStep = currentStep)
-                    PhotosUploadStep(
-                        photos = photos,
-                        onAddPhoto = {},
-                        onRemovePhoto = {}
-                    )
-                }
-            }
-        }
+        CreateItemContent(
+            uiState = CreateItemUiState(currentStep = CreateItemStep.PHOTOS),
+            onNavigateBack = {},
+            onNextStep = {},
+            onPublish = {},
+            onAddPhoto = {},
+            onRemovePhoto = {},
+            onTitleChange = {},
+            onCategoryChange = {},
+            onDescriptionChange = {},
+            onTradeToggle = {},
+            onNeverUsedToggle = {}
+        )
     }
 }
 
@@ -806,28 +838,24 @@ fun CreateItemStep1Preview() {
 @Composable
 fun CreateItemStep2Preview() {
     ReusaiTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-            var currentStep by remember { mutableStateOf(CreateItemStep.DETAILS) }
-            
-            Scaffold(
-                topBar = { CreateItemTopBar(currentStep = currentStep, onBack = {}) },
-                bottomBar = { BottomActionButton(text = "Próximo Passo", onClick = {}) }
-            ) { paddingValues ->
-                Column(modifier = Modifier.padding(paddingValues)) {
-                    StepIndicator(currentStep = currentStep)
-                    ItemDetailsStep(
-                        title = "Jaqueta de Couro Sintético",
-                        onTitleChange = {},
-                        category = "Vestuário",
-                        onCategoryChange = {},
-                        description = "Jaqueta preta tamanho M. Usada duas vezes, sem nenhum rasgo ou marca de uso.",
-                        onDescriptionChange = {},
-                        isAvailableForTrade = true,
-                        onTradeToggle = {}
-                    )
-                }
-            }
-        }
+        CreateItemContent(
+            uiState = CreateItemUiState(
+                currentStep = CreateItemStep.DETAILS,
+                title = "Jaqueta de Couro Sintético",
+                category = "Vestuário",
+                description = "Jaqueta preta tamanho M. Usada duas vezes, sem nenhum rasgo ou marca de uso."
+            ),
+            onNavigateBack = {},
+            onNextStep = {},
+            onPublish = {},
+            onAddPhoto = {},
+            onRemovePhoto = {},
+            onTitleChange = {},
+            onCategoryChange = {},
+            onDescriptionChange = {},
+            onTradeToggle = {},
+            onNeverUsedToggle = {}
+        )
     }
 }
 
@@ -835,18 +863,18 @@ fun CreateItemStep2Preview() {
 @Composable
 fun CreateItemStep3Preview() {
     ReusaiTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-            var currentStep by remember { mutableStateOf(CreateItemStep.REVIEW) }
-            
-            Scaffold(
-                topBar = { CreateItemTopBar(currentStep = currentStep, onBack = {}) },
-                bottomBar = { BottomActionButton(text = "Publicar Desapego", onClick = {}) }
-            ) { paddingValues ->
-                Column(modifier = Modifier.padding(paddingValues)) {
-                    StepIndicator(currentStep = currentStep)
-                    ReviewStep()
-                }
-            }
-        }
+        CreateItemContent(
+            uiState = CreateItemUiState(currentStep = CreateItemStep.REVIEW),
+            onNavigateBack = {},
+            onNextStep = {},
+            onPublish = {},
+            onAddPhoto = {},
+            onRemovePhoto = {},
+            onTitleChange = {},
+            onCategoryChange = {},
+            onDescriptionChange = {},
+            onTradeToggle = {},
+            onNeverUsedToggle = {}
+        )
     }
 }
