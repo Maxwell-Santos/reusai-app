@@ -1,12 +1,11 @@
 package com.example.reusai.ui.screens
 
-import android.content.Context
+import android.R.attr.strokeColor
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,11 +19,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +64,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -75,21 +71,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DecodeFormat
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
 import com.example.reusai.ui.theme.ReusaiTheme
 import com.example.reusai.ui.viewmodels.CreateItemUiState
 import com.example.reusai.ui.viewmodels.CreateItemViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.IOException
 
 enum class CreateItemStep {
     PHOTOS, DETAILS, REVIEW
@@ -116,7 +103,7 @@ fun CreateItemScreen(
         uiState = uiState,
         onNavigateBack = { viewModel.previousStep(onNavigateBack) },
         onNextStep = { viewModel.nextStep() },
-        onPublish = onPublish,
+        onPublish = { viewModel.publishItem(onPublish) },
         onAddPhoto = { uri -> viewModel.addPhoto(context, uri) },
         onRemovePhoto = { viewModel.removePhoto(it) },
         onTitleChange = viewModel::onTitleChange,
@@ -161,8 +148,9 @@ fun CreateItemContent(
                 )
             } else {
                 BottomActionButton(
-                    text = "Publicar Desapego",
-                    onClick = onPublish
+                    text = if (uiState.isPublishing) "Publicando..." else "Publicar Desapego",
+                    onClick = onPublish,
+                    enabled = !uiState.isPublishing
                 )
             }
         }
@@ -329,13 +317,6 @@ fun PhotosUploadStep(
             onAddPhoto = onAddPhoto,
             onRemovePhoto = onRemovePhoto
         )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        InfoBox(
-            icon = Icons.Outlined.Info,
-            text = "Evite fotos borradas e mostre possíveis defeitos. A transparência gera confiança!"
-        )
     }
 }
 
@@ -345,149 +326,111 @@ fun PhotoGrid(
     onAddPhoto: () -> Unit,
     onRemovePhoto: (Uri) -> Unit
 ) {
-    Column {
-        val totalSlots = 4
-        val rows = 2
-        for (i in 0 until rows) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                for (j in 0 until 2) {
-                    val index = i * 2 + j
-                    Box(modifier = Modifier.weight(1f).aspectRatio(1f)) {
-                        if (index < photos.size) {
-                            PhotoItem(
-                                photo = photos[index],
-                                isCover = index == 0,
-                                onRemove = { onRemovePhoto(photos[index]) }
-                            )
-                        } else {
-                            AddPhotoPlaceholder(onClick = onAddPhoto)
-                        }
-                    }
-                }
-            }
-            if (i == 0) Spacer(modifier = Modifier.height(16.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                uri = photos.getOrNull(0),
+                onAdd = onAddPhoto,
+                onRemove = { photos.getOrNull(0)?.let { onRemovePhoto(it) } },
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                uri = photos.getOrNull(1),
+                onAdd = onAddPhoto,
+                onRemove = { photos.getOrNull(1)?.let { onRemovePhoto(it) } },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoItem(
+                uri = photos.getOrNull(2),
+                onAdd = onAddPhoto,
+                onRemove = { photos.getOrNull(2)?.let { onRemovePhoto(it) } },
+                modifier = Modifier.weight(1f)
+            )
+            PhotoItem(
+                uri = photos.getOrNull(3),
+                onAdd = onAddPhoto,
+                onRemove = { photos.getOrNull(3)?.let { onRemovePhoto(it) } },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-fun PhotoItem(photo: Uri, isCover: Boolean, onRemove: () -> Unit) {
+fun PhotoItem(
+    uri: Uri?,
+    onAdd: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
+            .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+//            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f))
+            .clickable(enabled = uri == null) { onAdd() },
+        contentAlignment = Alignment.Center
     ) {
-        AsyncImage(
-            model = photo,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        
-        if (isCover) {
-            Box(
+        if (uri != null) {
+            AsyncImage(
+                model = uri,
+                contentDescription = "Foto do item",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            IconButton(
+                onClick = onRemove,
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(24.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
             ) {
-                Text(
-                    text = "CAPA",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Remover foto",
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-        }
-        
-        IconButton(
-            onClick = onRemove,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp)
-                .size(24.dp)
-                .background(Color.Black.copy(alpha = 0.4f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Remover",
-                tint = Color.White,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun AddPhotoPlaceholder(onClick: () -> Unit) {
-    val strokeColor = MaterialTheme.colorScheme.outline
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable { onClick() }
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRoundRect(
-                color = strokeColor,
-                style = Stroke(
-                    width = 2.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                ),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx())
-            )
-        }
-        
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.AddPhotoAlternate,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Adicionar foto",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-fun InfoBox(icon: ImageVector, text: String) {
-    Surface(
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                lineHeight = 20.sp
-            )
+        } else {
+            val strokeColor = MaterialTheme.colorScheme.outline
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRoundRect(
+                    color = strokeColor,
+                    style = Stroke(
+                        width = 2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    ),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx())
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AddPhotoAlternate,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(
+                    text = "Adicionar",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
@@ -506,102 +449,66 @@ fun ItemDetailsStep(
     isNeverUsed: Boolean,
     onNeverUsedToggle: (Boolean) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
-    
-    val categories = remember {
-        listOf(
-            "📱 Eletrônicos",
-            "Smartphones",
-            "Notebooks e computadores",
-            "Videogames e acessórios",
-            "TVs e áudio",
-            "👕 Moda e Acessórios",
-            "Roupas (masculino, feminino, infantil)",
-            "Calçados",
-            "Bolsas e mochilas",
-            "Relógios e joias",
-            "🏠 Casa e Decoração",
-            "Móveis",
-            "Eletrodomésticos",
-            "Utensílios de cozinha",
-            "Itens de decoração",
-            "📚 Cultura e Lazer",
-            "Livros",
-            "Filmes e séries (DVD/Blu-ray)",
-            "Instrumentos musicais",
-            "Jogos de tabuleiro",
-            "🎮 Games",
-            "Consoles",
-            "Jogos físicos",
-            "Acessórios gamer",
-            "👶 Infantil",
-            "Brinquedos",
-            "Roupas infantis",
-            "Carrinhos de bebê",
-            "Artigos escolares",
-            "🏋️ Esporte e Fitness",
-            "Equipamentos de academia",
-            "Bicicletas e acessórios",
-            "Roupas esportivas",
-            "Suplementos (com cautela/moderação)",
-            "🐶 Pets",
-            "Acessórios",
-            "Brinquedos",
-            "Camas e casinhas"
-        )
-    }
+    val categories = listOf("Vestuário", "Eletrônicos", "Casa", "Livros", "Esportes", "Outros")
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        // Title Field
-        FormFieldLabel("Título do item")
-        OutlinedTextField(
+        Text(
+            text = "Sobre o desapego",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Conte-nos mais sobre o que você está desapegando.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+        )
+
+        // Title
+        CreateItemTextField(
             value = title,
             onValueChange = onTitleChange,
-            placeholder = { Text("Ex: Jaqueta de Couro Sintético") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            )
+            label = "Título do anúncio",
+            placeholder = "Ex: Jaqueta de couro preta"
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Category Field
-        FormFieldLabel("Categoria")
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Category Dropdown
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = {
-                if (it) focusManager.clearFocus() // Clear focus before opening to hide keyboard
-                expanded = it
-            },
+            onExpandedChange = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
                 value = category,
                 onValueChange = {},
                 readOnly = true,
+                label = { Text("Categoria") },
                 placeholder = { Text("Selecione uma categoria") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                )
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.secondary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
+
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.exposedDropdownSize().heightIn(max = 280.dp)
+                onDismissRequest = { expanded = false }
             ) {
                 categories.forEach { selectionOption ->
                     DropdownMenuItem(
@@ -609,108 +516,108 @@ fun ItemDetailsStep(
                         onClick = {
                             onCategoryChange(selectionOption)
                             expanded = false
-                        }
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                     )
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
-        // Description Field
-        FormFieldLabel("Descrição detalhada")
-        OutlinedTextField(
+
+        // Description
+        CreateItemTextField(
             value = description,
             onValueChange = onDescriptionChange,
-            placeholder = { Text("Ex: Jaqueta preta tamanho M. Usada duas vezes...") },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            )
+            label = "Descrição",
+            placeholder = "Descreva o estado do item, tamanho, tempo de uso...",
+            minLines = 3,
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Toggles
+        ToggleOption(
+            title = "Aceito trocas",
+            subtitle = "Você está aberto a trocar este item por outro?",
+            checked = isAvailableForTrade,
+            onCheckedChange = onTradeToggle
         )
         
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Trade Toggle
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Disponível para troca",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Outros usuários poderão oferecer itens",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-                Switch(
-                    checked = isAvailableForTrade,
-                    onCheckedChange = onTradeToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-            }
-        }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Neve used
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Item nunca usado",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Switch(
-                    checked = isNeverUsed,
-                    onCheckedChange = onNeverUsedToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-            }
-        }
+        ToggleOption(
+            title = "Produto novo",
+            subtitle = "O item nunca foi usado e está na etiqueta/caixa?",
+            checked = isNeverUsed,
+            onCheckedChange = onNeverUsedToggle
+        )
     }
 }
 
 @Composable
-fun FormFieldLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(bottom = 0.dp)
+fun CreateItemTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    minLines: Int = 1,
+    maxLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.secondary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary
+        ),
+        minLines = minLines,
+        maxLines = maxLines
     )
+}
+
+@Composable
+fun ToggleOption(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+    }
 }
 
 @Composable
@@ -718,41 +625,29 @@ fun ReviewStep() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.AddPhotoAlternate, // Using same icon as in design
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Tudo pronto!",
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            fontWeight = FontWeight.Bold
         )
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
         Text(
             text = "Seu item está prestes a entrar na comunidade. Revise as informações e publique para começar a receber propostas de troca.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.secondary,
             textAlign = TextAlign.Center,
-            lineHeight = 24.sp
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }
@@ -760,7 +655,8 @@ fun ReviewStep() {
 @Composable
 fun BottomActionButton(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -769,6 +665,7 @@ fun BottomActionButton(
     ) {
         Button(
             onClick = onClick,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -786,33 +683,6 @@ fun BottomActionButton(
         }
     }
 }
-
-private suspend fun compressImage(context: Context, uri: Uri): File = withContext(Dispatchers.IO) {
-    // Note: This is now handled in the ViewModel, but kept here if other parts of UI need it
-    // or if you want to keep the UI's own utility functions separate.
-    // Ideally, move this to a repository or use case.
-    val outputFile = File.createTempFile("compressed_", ".jpg", context.cacheDir).apply {
-        deleteOnExit()
-    }
-
-    try {
-        Glide.with(context)
-            .asFile()
-            .load(uri)
-            .apply(
-                RequestOptions()
-                    .override(1024, 768)
-                    .encodeQuality(70)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .format(DecodeFormat.PREFER_RGB_565)
-            )
-            .submit()
-            .get()
-    } catch (e: Exception) {
-        throw IOException("Falha ao comprimir imagem: ${e.message}")
-    }
-}
-
 
 @Preview(showBackground = true)
 @Composable

@@ -61,4 +61,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation(libs.glide)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
 }

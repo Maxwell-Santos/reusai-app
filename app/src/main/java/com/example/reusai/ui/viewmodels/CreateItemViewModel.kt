@@ -8,6 +8,9 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import com.example.reusai.data.network.ItemRequest
+import com.example.reusai.data.network.RetrofitClient
+import com.example.reusai.data.network.StatusEnum
 import com.example.reusai.ui.screens.CreateItemStep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,6 +107,33 @@ class CreateItemViewModel : ViewModel() {
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun publishItem(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPublishing = true) }
+            try {
+                val state = _uiState.value
+                val request = ItemRequest(
+                    title = state.title,
+                    category = state.category,
+                    description = state.description,
+                    availableToChange = state.isAvailableForTrade,
+                    status = if (state.isNeverUsed) StatusEnum.NEW else StatusEnum.USED,
+                    imageUrl = state.photos[0].path.toString()
+                )
+
+                RetrofitClient.instance.createItem(request)
+                
+                // Success: clear state and navigate
+                _uiState.update { CreateItemUiState() }
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Erro ao publicar: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isPublishing = false) }
+            }
+        }
     }
 
     private suspend fun compressImage(context: Context, uri: Uri): File = withContext(Dispatchers.IO) {
