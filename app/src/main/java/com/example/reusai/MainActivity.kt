@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.reusai.ui.screens.CreateItemScreen
+import com.example.reusai.ui.screens.RegisterScreen
 import com.example.reusai.ui.theme.ReusaiTheme
 
 class MainActivity : ComponentActivity() {
@@ -67,6 +68,12 @@ fun ReusaiApp() {
                     onPublish = { currentDestination = AppDestinations.HOME }
                 )
             }
+            AppDestinations.REGISTER -> {
+                RegisterScreen(
+                    onNavigateBack = { currentDestination = AppDestinations.HOME },
+                    onLoginClick = { /* Navigate to Login if it existed */ }
+                )
+            }
             else -> {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
@@ -86,7 +93,8 @@ enum class AppDestinations(
     HOME("Home", R.drawable.ic_home),
     FAVORITES("Favorites", R.drawable.ic_favorite),
     PROFILE("Profile", R.drawable.ic_account_box),
-    PUBLISH("Publicar item", R.drawable.ic_favorite)
+    PUBLISH("Publicar item", R.drawable.ic_favorite),
+    REGISTER("Cadastro", R.drawable.ic_account_box)
 }
 
 @Composable
