@@ -22,6 +22,9 @@ interface ReusaiApiService {
 
     @PUT("item/{itemId}")
     suspend fun updateItem(@Path("itemId") itemId: String, @Body item: ItemRequest)
+
+    @POST("user")
+    suspend fun createUser(@Body user: UserRequest): UserResponse
 }
 
 object RetrofitClient {
