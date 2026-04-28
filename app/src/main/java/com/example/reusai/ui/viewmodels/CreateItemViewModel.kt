@@ -187,26 +187,4 @@ class CreateItemViewModel : ViewModel() {
 
             outputFile
         }
-//    private suspend fun compressImage(context: Context, uri: Uri): File = withContext(Dispatchers.IO) {
-//        val outputFile = File.createTempFile("compressed_", ".jpg", context.cacheDir).apply {
-//            deleteOnExit()
-//        }
-//
-//        try {
-//            Glide.with(context)
-//                .asFile()
-//                .load(uri)
-//                .apply(
-//                    RequestOptions()
-//                        .override(1024, 768)
-//                        .encodeQuality(70)
-//                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-//                        .format(DecodeFormat.PREFER_RGB_565)
-//                )
-//                .submit()
-//                .get()
-//        } catch (e: Exception) {
-//            throw IOException("Falha ao comprimir imagem: ${e.message}")
-//        }
-//    }
 }
