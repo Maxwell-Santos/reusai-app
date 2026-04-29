@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.reusai.ui.screens.CreateItemScreen
+import com.example.reusai.ui.screens.LoginScreen
 import com.example.reusai.ui.screens.RegisterScreen
 import com.example.reusai.ui.theme.ReusaiTheme
 
@@ -71,7 +72,14 @@ fun ReusaiApp() {
             AppDestinations.REGISTER -> {
                 RegisterScreen(
                     onNavigateBack = { currentDestination = AppDestinations.HOME },
-                    onLoginClick = { /* Navigate to Login if it existed */ }
+                    onLoginClick = { currentDestination = AppDestinations.LOGIN }
+                )
+            }
+            AppDestinations.LOGIN -> {
+                LoginScreen(
+                    onLoginSuccess = { currentDestination = AppDestinations.HOME },
+                    onSignUpClick = { currentDestination = AppDestinations.REGISTER },
+                    onForgotPasswordClick = { /* Handle forgot password */ }
                 )
             }
             else -> {
@@ -94,7 +102,8 @@ enum class AppDestinations(
     FAVORITES("Favorites", R.drawable.ic_favorite),
     PROFILE("Profile", R.drawable.ic_account_box),
     PUBLISH("Publicar item", R.drawable.ic_favorite),
-    REGISTER("Cadastro", R.drawable.ic_account_box)
+    REGISTER("Cadastro", R.drawable.ic_account_box),
+    LOGIN("Login", R.drawable.ic_account_box)
 }
 
 @Composable
