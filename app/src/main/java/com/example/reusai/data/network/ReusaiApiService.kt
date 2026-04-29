@@ -25,6 +25,9 @@ interface ReusaiApiService {
 
     @POST("user")
     suspend fun createUser(@Body user: UserRequest): UserResponse
+
+    @POST("login")
+    suspend fun login(@Body loginRequest: LoginRequest): UserResponse
 }
 
 object RetrofitClient {
