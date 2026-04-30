@@ -64,13 +64,13 @@ fun ReusaiApp() {
                         Icon(
                             painter = painterResource(it.icon),
                             contentDescription = it.label,
-                            modifier = Modifier.size(26.dp) // 🔥 menor
+                            modifier = Modifier.size(26.dp)
                         )
                     },
                     label = {
                         Text(
                             it.label,
-                            fontSize = 10.sp // 🔥 menor
+                            fontSize = 10.sp
                         )
                     },
                     selected = it == currentDestination,
