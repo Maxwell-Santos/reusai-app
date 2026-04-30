@@ -11,6 +11,11 @@ data class ItemRequest(
 
 data class ItemResponse(
     val id: String,
+    val title: String,
+    val category: String,
+    val description: String,
+    val imageUrl: String,
+    val availableToChange: Boolean,
     val status: String
 )
 

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
@@ -22,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.reusai.ui.screens.CreateItemScreen
 import com.example.reusai.ui.screens.LoginScreen
+import com.example.reusai.ui.screens.ProfileScreen
 import com.example.reusai.ui.screens.RegisterScreen
 import com.example.reusai.ui.theme.ReusaiTheme
 
@@ -44,18 +48,31 @@ class MainActivity : ComponentActivity() {
 fun ReusaiApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
+    val bottomNavItems = listOf(
+        AppDestinations.HOME,
+        AppDestinations.PROPOSALS,
+        AppDestinations.CHAT,
+        AppDestinations.PROFILE
+    )
+
     NavigationSuiteScaffold(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars), // Add status bar padding
+        modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
         navigationSuiteItems = {
-            AppDestinations.entries.forEach {
+            bottomNavItems.forEach {
                 item(
                     icon = {
                         Icon(
-                            painterResource(it.icon),
-                            contentDescription = it.label
+                            painter = painterResource(it.icon),
+                            contentDescription = it.label,
+                            modifier = Modifier.size(26.dp)
                         )
                     },
-                    label = { Text(it.label) },
+                    label = {
+                        Text(
+                            it.label,
+                            fontSize = 10.sp
+                        )
+                    },
                     selected = it == currentDestination,
                     onClick = { currentDestination = it }
                 )
@@ -63,27 +80,42 @@ fun ReusaiApp() {
         }
     ) {
         when (currentDestination) {
-            AppDestinations.PUBLISH -> {
-                CreateItemScreen(
-                    onNavigateBack = { currentDestination = AppDestinations.HOME },
-                    onPublish = { currentDestination = AppDestinations.HOME }
+
+            AppDestinations.PROFILE -> {
+                ProfileScreen(
+                    onAddNewItem = { currentDestination = AppDestinations.PUBLISH },
+                    onSettingsClick = {},
+                    onSeeAllReviews = {},
+                    onEditItem = {}
                 )
             }
+
+            AppDestinations.PUBLISH -> {
+                CreateItemScreen(
+                    onNavigateBack = { currentDestination = AppDestinations.PROFILE },
+                    onPublish = { currentDestination = AppDestinations.PROFILE }
+                )
+            }
+
             AppDestinations.REGISTER -> {
                 RegisterScreen(
-                    onNavigateBack = { currentDestination = AppDestinations.HOME },
+                    onNavigateBack = { currentDestination = AppDestinations.LOGIN },
                     onLoginClick = { currentDestination = AppDestinations.LOGIN }
                 )
             }
+
             AppDestinations.LOGIN -> {
                 LoginScreen(
-                    onLoginSuccess = { currentDestination = AppDestinations.HOME },
+                    onLoginSuccess = { currentDestination = AppDestinations.PROFILE },
                     onSignUpClick = { currentDestination = AppDestinations.REGISTER },
-                    onForgotPasswordClick = { /* Handle forgot password */ }
+                    onForgotPasswordClick = {}
                 )
             }
+
             else -> {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
                     Greeting(
                         name = currentDestination.label,
                         modifier = Modifier.padding(innerPadding)
@@ -93,15 +125,15 @@ fun ReusaiApp() {
         }
     }
 }
-
 enum class AppDestinations(
     val label: String,
     val icon: Int,
 ) {
-    HOME("Home", R.drawable.ic_home),
-    FAVORITES("Favorites", R.drawable.ic_favorite),
-    PROFILE("Profile", R.drawable.ic_account_box),
-    PUBLISH("Publicar item", R.drawable.ic_favorite),
+    HOME("Início", R.drawable.ic_home),
+    PROPOSALS("Propostas", R.drawable.ic_favorite),
+    CHAT("Chat", R.drawable.ic_account_box),
+    PROFILE("Perfil", R.drawable.ic_account_box),
+    PUBLISH("Publicar", R.drawable.ic_favorite),
     REGISTER("Cadastro", R.drawable.ic_account_box),
     LOGIN("Login", R.drawable.ic_account_box)
 }
