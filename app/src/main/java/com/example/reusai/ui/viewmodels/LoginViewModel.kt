@@ -3,7 +3,7 @@ package com.example.reusai.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reusai.data.network.LoginRequest
-import com.example.reusai.data.network.RetrofitClient
+import com.example.reusai.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,9 @@ data class LoginUiState(
     val passwordError: String? = null
 )
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(
+    private val authRepository: AuthRepository = AuthRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -62,14 +64,16 @@ class LoginViewModel : ViewModel() {
                     password = state.password
                 )
 
-                val response = RetrofitClient.instance.login(request)
+                val result = authRepository.login(request)
                 
-                // Here you would typically store the token (SharedPreferences/DataStore)
-                // For now we just mark as success
-                _uiState.update { it.copy(isSuccess = true) }
-                onSuccess()
+                if (result.isSuccess) {
+                    _uiState.update { it.copy(isSuccess = true) }
+                    onSuccess()
+                } else {
+                    _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Erro ao entrar") }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Erro ao entrar: Verifique suas credenciais") }
+                _uiState.update { it.copy(errorMessage = "Erro inesperado: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }

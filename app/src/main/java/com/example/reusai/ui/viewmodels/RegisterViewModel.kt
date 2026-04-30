@@ -6,8 +6,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.reusai.data.network.RetrofitClient
 import com.example.reusai.data.network.UserRequest
+import com.example.reusai.data.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +38,9 @@ data class RegisterUiState(
     val passwordError: String? = null
 )
 
-class RegisterViewModel : ViewModel() {
+class RegisterViewModel(
+    private val authRepository: AuthRepository = AuthRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
@@ -118,8 +120,8 @@ class RegisterViewModel : ViewModel() {
                     val file = File(uri.path ?: throw IOException("Caminho da imagem inválido"))
                     val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-                    val uploadResponse = RetrofitClient.instance.uploadImage(body)
-                    profilePhotoUrl = uploadResponse.url
+//                    val uploadResponse = RetrofitClient.instance.uploadImage(body)
+//                    profilePhotoUrl = uploadResponse.url
                 }
 
                 // 2. Create user
@@ -128,15 +130,19 @@ class RegisterViewModel : ViewModel() {
                     cep = state.cep,
                     email = state.email,
                     password = state.password,
-                    profilePhotoUrl = profilePhotoUrl
+                    profilePhotoUrl = null
                 )
 
-                RetrofitClient.instance.createUser(request)
+                val result = authRepository.register(request)
                 
-                _uiState.update { it.copy(isSuccess = true) }
-                onSuccess()
+                if (result.isSuccess) {
+                    _uiState.update { it.copy(isSuccess = true) }
+                    onSuccess()
+                } else {
+                    _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Erro ao criar conta") }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Erro ao criar conta: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = "Erro inesperado: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
