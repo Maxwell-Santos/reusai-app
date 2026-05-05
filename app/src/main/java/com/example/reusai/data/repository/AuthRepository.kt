@@ -13,7 +13,7 @@ class AuthRepository {
             Result.success(
                 UserResponse(
                     id = "1",
-                    name = "Max",
+                    username = "Max",
                     email = "max@gmail.com",
                     token = "mock-token-123"
                 )
@@ -21,17 +21,5 @@ class AuthRepository {
         } else {
             Result.failure(Exception("Invalid email or password"))
         }
-    }
-
-    suspend fun register(userRequest: UserRequest): Result<UserResponse> {
-        delay(1500)
-        return Result.success(
-            UserResponse(
-                id = "2",
-                name = userRequest.name,
-                email = userRequest.email,
-                message = "User created successfully"
-            )
-        )
     }
 }

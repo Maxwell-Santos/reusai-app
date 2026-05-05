@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.reusai.data.network.RetrofitClient
 import com.example.reusai.data.network.UserRequest
 import com.example.reusai.data.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 
 data class RegisterUiState(
-    val name: String = "",
+    val username: String = "",
     val cep: String = "",
     val email: String = "",
     val password: String = "",
@@ -46,7 +47,7 @@ class RegisterViewModel(
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     fun onNameChange(newName: String) {
-        _uiState.update { it.copy(name = newName, nameError = null) }
+        _uiState.update { it.copy(username = newName, nameError = null) }
     }
 
     fun onCepChange(newCep: String) {
@@ -83,7 +84,7 @@ class RegisterViewModel(
         var isValid = true
         val currentState = _uiState.value
 
-        if (currentState.name.isBlank()) {
+        if (currentState.username.isBlank()) {
             _uiState.update { it.copy(nameError = "Nome é obrigatório") }
             isValid = false
         }
@@ -120,27 +121,24 @@ class RegisterViewModel(
                     val file = File(uri.path ?: throw IOException("Caminho da imagem inválido"))
                     val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-//                    val uploadResponse = RetrofitClient.instance.uploadImage(body)
-//                    profilePhotoUrl = uploadResponse.url
+                    val uploadResponse = RetrofitClient.instance.uploadImage(body)
+                    profilePhotoUrl = uploadResponse.url
                 }
 
                 // 2. Create user
                 val request = UserRequest(
-                    name = state.name,
+                    username = state.username,
                     cep = state.cep,
                     email = state.email,
                     password = state.password,
-                    profilePhotoUrl = null
+                    photoUrl = profilePhotoUrl
                 )
 
-                val result = authRepository.register(request)
-                
-                if (result.isSuccess) {
-                    _uiState.update { it.copy(isSuccess = true) }
-                    onSuccess()
-                } else {
-                    _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Erro ao criar conta") }
-                }
+//                val result = authRepository.register(request)
+                RetrofitClient.instance.createUser(request)
+                _uiState.update { it.copy(isSuccess = true) }
+                onSuccess()
+
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Erro inesperado: ${e.message}") }
             } finally {

@@ -153,7 +153,7 @@ fun RegisterScreen(
             // Campos do Formulário
             RegisterTextField(
                 label = "Nome",
-                value = uiState.name,
+                value = uiState.username,
                 onValueChange = { viewModel.onNameChange(it) },
                 placeholder = "Digite seu nome completo",
                 leadingIcon = Icons.Outlined.Person,
