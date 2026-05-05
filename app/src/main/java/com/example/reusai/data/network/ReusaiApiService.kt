@@ -10,6 +10,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.DELETE
 import retrofit2.http.Part
 import retrofit2.http.Path
 
@@ -21,11 +22,17 @@ interface ReusaiApiService {
     suspend fun createItem(@Body item: ItemRequest): ItemResponse
 
     @Multipart
-    @POST("item/upload-image")
+    @POST("upload-image")
     suspend fun uploadImage(@Part image: MultipartBody.Part): UploadImageResponse
+
+    @GET("item/{itemId}")
+    suspend fun getItem(@Path("itemId") itemId: String): ItemResponse
 
     @PUT("item/{itemId}")
     suspend fun updateItem(@Path("itemId") itemId: String, @Body item: ItemRequest)
+
+    @DELETE("item/{itemId}")
+    suspend fun deleteItem(@Path("itemId") itemId: String)
 
     @POST("user")
     suspend fun createUser(@Body user: UserRequest): UserResponse
@@ -37,7 +44,7 @@ interface ReusaiApiService {
 object RetrofitClient {
     // 10.0.2.2 is the special IP for Android Emulator to access localhost of the host machine
 //    private const val BASE_URL = "http://10.0.2.2:8080/"
-    private const val BASE_URL = "http://192.168.15.7:8080/"
+    private const val BASE_URL = "http://192.168.15.8:8080/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
