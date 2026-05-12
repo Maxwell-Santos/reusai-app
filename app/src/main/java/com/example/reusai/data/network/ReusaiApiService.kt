@@ -44,7 +44,7 @@ interface ReusaiApiService {
 object RetrofitClient {
     // 10.0.2.2 is the special IP for Android Emulator to access localhost of the host machine
 //    private const val BASE_URL = "http://10.0.2.2:8080/"
-    private const val BASE_URL = "http://192.168.15.8:8080/"
+    private const val BASE_URL = "http://192.168.15.7:8080/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

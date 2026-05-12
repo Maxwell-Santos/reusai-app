@@ -20,10 +20,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.reusai.ui.screens.CreateItemScreen
 import com.example.reusai.ui.screens.HomeScreen
 import com.example.reusai.ui.screens.LoginScreen
@@ -130,12 +132,32 @@ fun ReusaiApp() {
                     onAddNewItem = { navController.navigate(AppDestinations.PUBLISH.route) },
                     onSettingsClick = {},
                     onSeeAllReviews = {},
-                    onEditItem = {}
+                    onEditItem = { itemId ->
+                        navController.navigate("${AppDestinations.PUBLISH.route}?isEditMode=true&itemId=$itemId")
+                    }
                 )
             }
 
-            composable(AppDestinations.PUBLISH.route) {
+            composable(
+                route = "${AppDestinations.PUBLISH.route}?isEditMode={isEditMode}&itemId={itemId}",
+                arguments = listOf(
+                    navArgument("isEditMode") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                    navArgument("itemId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val isEditMode = backStackEntry.arguments?.getBoolean("isEditMode") ?: false
+                val itemId = backStackEntry.arguments?.getString("itemId")
+
                 CreateItemScreen(
+                    isEditMode = isEditMode,
+                    itemId = itemId,
                     onNavigateBack = { navController.popBackStack() },
                     onPublish = { navController.popBackStack() }
                 )
