@@ -22,4 +22,10 @@ class AuthRepository {
             Result.failure(Exception("Invalid email or password"))
         }
     }
+
+    suspend fun logout(): Result<Unit> {
+        delay(500) // Simulate network/io delay
+        // Here you would clear tokens from DataStore/SharedPreferences
+        return Result.success(Unit)
+    }
 }

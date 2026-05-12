@@ -17,3 +17,9 @@ val Slate500 = Color(0xFF64748B)
 val Slate600 = Color(0xFF475569) // Added based on text usage in request
 val Slate700 = Color(0xFF334155)
 val Slate900 = Color(0xFF0F172A)
+
+// Red Colors (for Logout/Errors)
+val Red50 = Color(0xFFFEF2F2)
+val Red100 = Color(0xFFFEE2E2)
+val Red500 = Color(0xFFEF4444)
+val Red600 = Color(0xFFDC2626)

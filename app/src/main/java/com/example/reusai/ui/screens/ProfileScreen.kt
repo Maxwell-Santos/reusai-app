@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.reusai.data.network.ItemResponse
+import com.example.reusai.ui.components.LogoutButton
 import com.example.reusai.ui.theme.Emerald500
 import com.example.reusai.ui.theme.Slate900
 import com.example.reusai.ui.viewmodels.ProfileViewModel
@@ -68,12 +70,19 @@ import com.example.reusai.ui.viewmodels.ReviewUiModel
 @Composable
 fun ProfileScreen(
     onAddNewItem: () -> Unit,
+    onLogoutSuccess: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onSeeAllReviews: () -> Unit = {},
     onEditItem: (String) -> Unit = {},
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.isLogoutSuccess) {
+        if (uiState.isLogoutSuccess) {
+            onLogoutSuccess()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -102,6 +111,10 @@ fun ProfileScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    LogoutButton(
+                        onLogoutConfirmed = { viewModel.logout() },
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )

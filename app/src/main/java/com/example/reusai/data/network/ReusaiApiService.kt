@@ -39,6 +39,9 @@ interface ReusaiApiService {
 
     @POST("login")
     suspend fun login(@Body loginRequest: LoginRequest): UserResponse
+
+    @POST("logout")
+    suspend fun logout()
 }
 
 object RetrofitClient {

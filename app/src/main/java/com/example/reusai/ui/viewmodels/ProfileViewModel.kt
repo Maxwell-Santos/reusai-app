@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reusai.data.network.ItemResponse
 import com.example.reusai.data.network.RetrofitClient
+import com.example.reusai.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
+    val isLogoutSuccess: Boolean = false,
     val items: List<ItemResponse> = emptyList(),
     val errorMessage: String? = null,
     // Mocked user data as per requirements
@@ -38,13 +40,27 @@ data class ReviewUiModel(
     val timeAgo: String
 )
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(
+    private val authRepository: AuthRepository = AuthRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
         fetchItems()
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = authRepository.logout()
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLogoutSuccess = true, isLoading = false) }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Erro ao sair", isLoading = false) }
+            }
+        }
     }
 
     fun fetchItems() {

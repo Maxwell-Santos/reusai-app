@@ -130,6 +130,11 @@ fun ReusaiApp() {
             composable(AppDestinations.PROFILE.route) {
                 ProfileScreen(
                     onAddNewItem = { navController.navigate(AppDestinations.PUBLISH.route) },
+                    onLogoutSuccess = {
+                        navController.navigate(AppDestinations.LOGIN.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                     onSettingsClick = {},
                     onSeeAllReviews = {},
                     onEditItem = { itemId ->
