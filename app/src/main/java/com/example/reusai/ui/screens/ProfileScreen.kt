@@ -173,11 +173,9 @@ fun ProfileScreen(
                 items(uiState.items) { item ->
                     ItemCard(
                         item = item,
-                        onEdit = { onEditItem(item.id) },
-                        onDelete = { viewModel.deleteItem(item.id) }
+                        onEdit = { onEditItem(item.id) }
                     )
                 }
-
             }
 
             item {
@@ -362,8 +360,7 @@ fun ReviewCard(review: ReviewUiModel) {
 @Composable
 fun ItemCard(
     item: ItemResponse,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onEdit: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -423,14 +420,12 @@ fun ItemCard(
                     onClick = onEdit,
                     modifier = Modifier.size(32.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                 ) {
-                    Icon(Icons.Default.EditNote, contentDescription = "Editar", tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp).border(1.dp, Color(0xFFFFEBEE), RoundedCornerShape(8.dp))
-                ) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Excluir", tint = Color.Red, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.EditNote,
+                        contentDescription = "Editar",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

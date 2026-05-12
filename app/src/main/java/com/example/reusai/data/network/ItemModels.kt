@@ -6,7 +6,8 @@ data class ItemRequest(
     val description: String,
     val availableToChange: Boolean,
     val status: StatusEnum,
-    val imageUrl: String
+    val imageUrl: String,
+    val idUser: String
 )
 
 data class ItemResponse(
@@ -16,7 +17,8 @@ data class ItemResponse(
     val description: String,
     val imageUrl: String,
     val availableToChange: Boolean,
-    val status: String
+    val status: String,
+    val idUser: String
 )
 
 enum class StatusEnum {

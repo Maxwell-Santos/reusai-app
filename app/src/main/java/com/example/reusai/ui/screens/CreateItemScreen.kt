@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
@@ -84,12 +85,18 @@ enum class CreateItemStep {
 
 @Composable
 fun CreateItemScreen(
+    isEditMode: Boolean = false,
+    itemId: String? = null,
     viewModel: CreateItemViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
     onPublish: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    LaunchedEffect(isEditMode, itemId) {
+        viewModel.initialize(isEditMode, itemId)
+    }
 
     // Handle error messages
     LaunchedEffect(uiState.errorMessage) {
@@ -99,19 +106,26 @@ fun CreateItemScreen(
         }
     }
 
-    CreateItemContent(
-        uiState = uiState,
-        onNavigateBack = { viewModel.previousStep(onNavigateBack) },
-        onNextStep = { viewModel.nextStep() },
-        onPublish = { viewModel.publishItem(onPublish) },
-        onAddPhoto = { uri -> viewModel.addPhoto(context, uri) },
-        onRemovePhoto = { viewModel.removePhoto(it) },
-        onTitleChange = viewModel::onTitleChange,
-        onCategoryChange = viewModel::onCategoryChange,
-        onDescriptionChange = viewModel::onDescriptionChange,
-        onTradeToggle = viewModel::onTradeToggle,
-        onNeverUsedToggle = viewModel::onNeverUsedToggle
-    )
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        CreateItemContent(
+            uiState = uiState,
+            onNavigateBack = { viewModel.previousStep(onNavigateBack) },
+            onNextStep = { viewModel.nextStep() },
+            onPublish = { viewModel.publishItem(onPublish) },
+            onDelete = { viewModel.deleteItem(onPublish) }, // Reuse onPublish to go back after delete
+            onAddPhoto = { uri -> viewModel.addPhoto(context, uri) },
+            onRemovePhoto = { viewModel.removePhoto(it) },
+            onTitleChange = viewModel::onTitleChange,
+            onCategoryChange = viewModel::onCategoryChange,
+            onDescriptionChange = viewModel::onDescriptionChange,
+            onTradeToggle = viewModel::onTradeToggle,
+            onNeverUsedToggle = viewModel::onNeverUsedToggle
+        )
+    }
 }
 
 @Composable
@@ -120,6 +134,7 @@ fun CreateItemContent(
     onNavigateBack: () -> Unit,
     onNextStep: () -> Unit,
     onPublish: () -> Unit,
+    onDelete: () -> Unit,
     onAddPhoto: (Uri) -> Unit,
     onRemovePhoto: (Uri) -> Unit,
     onTitleChange: (String) -> Unit,
@@ -132,12 +147,40 @@ fun CreateItemContent(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> uri?.let { onAddPhoto(it) } }
     )
+    
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir Item") },
+            text = { Text("Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
             CreateItemTopBar(
                 currentStep = uiState.currentStep,
-                onBack = onNavigateBack
+                onBack = onNavigateBack,
+                isEditMode = uiState.isEditMode,
+                onDeleteClick = { showDeleteDialog = true }
             )
         },
         bottomBar = {
@@ -147,8 +190,13 @@ fun CreateItemContent(
                     onClick = onNextStep
                 )
             } else {
+                val buttonText = if (uiState.isPublishing) {
+                    if (uiState.isEditMode) "Salvando..." else "Publicando..."
+                } else {
+                    if (uiState.isEditMode) "Salvar Alterações" else "Publicar Desapego"
+                }
                 BottomActionButton(
-                    text = if (uiState.isPublishing) "Publicando..." else "Publicar Desapego",
+                    text = buttonText,
                     onClick = onPublish,
                     enabled = !uiState.isPublishing
                 )
@@ -210,12 +258,18 @@ fun CreateItemContent(
 @Composable
 fun CreateItemTopBar(
     currentStep: CreateItemStep,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isEditMode: Boolean = false,
+    onDeleteClick: () -> Unit = {}
 ) {
-    val title = when (currentStep) {
-        CreateItemStep.PHOTOS -> "Adicionar fotos"
-        CreateItemStep.DETAILS -> "Detalhes do item"
-        CreateItemStep.REVIEW -> "Revisão"
+    val title = if (isEditMode) {
+        "Editando Item"
+    } else {
+        when (currentStep) {
+            CreateItemStep.PHOTOS -> "Adicionar fotos"
+            CreateItemStep.DETAILS -> "Detalhes do item"
+            CreateItemStep.REVIEW -> "Revisão"
+        }
     }
     
     CenterAlignedTopAppBar(
@@ -232,6 +286,17 @@ fun CreateItemTopBar(
                     contentDescription = "Voltar",
                     modifier = Modifier.size(20.dp)
                 )
+            }
+        },
+        actions = {
+            if (isEditMode) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Excluir Item",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -693,6 +758,7 @@ fun CreateItemStep1Preview() {
             onNavigateBack = {},
             onNextStep = {},
             onPublish = {},
+            onDelete = {},
             onAddPhoto = {},
             onRemovePhoto = {},
             onTitleChange = {},
@@ -718,6 +784,7 @@ fun CreateItemStep2Preview() {
             onNavigateBack = {},
             onNextStep = {},
             onPublish = {},
+            onDelete = {},
             onAddPhoto = {},
             onRemovePhoto = {},
             onTitleChange = {},
@@ -738,6 +805,7 @@ fun CreateItemStep3Preview() {
             onNavigateBack = {},
             onNextStep = {},
             onPublish = {},
+            onDelete = {},
             onAddPhoto = {},
             onRemovePhoto = {},
             onTitleChange = {},

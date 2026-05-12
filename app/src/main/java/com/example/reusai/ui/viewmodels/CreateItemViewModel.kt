@@ -32,16 +32,51 @@ data class CreateItemUiState(
     val title: String = "",
     val category: String = "",
     val description: String = "",
+    val idUser: String? = "",
     val isAvailableForTrade: Boolean = true,
     val isNeverUsed: Boolean = false,
     val isPublishing: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isEditMode: Boolean = false,
+    val itemId: String? = null,
+    val isLoading: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
 class CreateItemViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateItemUiState())
     val uiState: StateFlow<CreateItemUiState> = _uiState.asStateFlow()
+
+    fun initialize(isEditMode: Boolean, itemId: String?) {
+        _uiState.update { it.copy(isEditMode = isEditMode, itemId = itemId) }
+        if (isEditMode && itemId != null) {
+            loadItem(itemId)
+        }
+    }
+
+    private fun loadItem(itemId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val item = RetrofitClient.instance.getItem(itemId)
+                _uiState.update {
+                    it.copy(
+                        title = item.title,
+                        category = item.category,
+                        description = item.description,
+                        isAvailableForTrade = item.availableToChange,
+                        isNeverUsed = item.status == StatusEnum.NEW.name,
+                        photos = listOf(Uri.parse(item.imageUrl)), // Assuming one image for now as per ItemResponse
+                        isLoading = false,
+                        idUser = "4ad064e9-910c-4531-a741-b8a7fe872e3b"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Erro ao carregar item: ${e.message}") }
+            }
+        }
+    }
 
     fun onTitleChange(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
@@ -127,34 +162,59 @@ class CreateItemViewModel : ViewModel() {
                     return@launch
                 }
 
-                // 1. Upload the image first
+                // 1. Handle Image: if it's already a network URL (in edit mode), skip upload
                 val photoUri = state.photos[0]
-                val file = File(photoUri.path ?: throw IOException("Caminho da imagem inválido"))
-                val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
+                val imageUrl = if (photoUri.toString().startsWith("http")) {
+                    photoUri.toString()
+                } else {
+                    val file = File(photoUri.path ?: throw IOException("Caminho da imagem inválido"))
+                    val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                    val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
 
-                val uploadResponse = RetrofitClient.instance.uploadImage(body)
-                val uploadedImageUrl = uploadResponse.url
+                    val uploadResponse = RetrofitClient.instance.uploadImage(body)
+                    uploadResponse.url
+                }
 
-                // 2. Create the item using the uploaded image URL
+                // 2. Create or Update the item
                 val request = ItemRequest(
                     title = state.title,
                     category = state.category,
                     description = state.description,
                     availableToChange = state.isAvailableForTrade,
                     status = if (state.isNeverUsed) StatusEnum.NEW else StatusEnum.USED,
-                    imageUrl = uploadedImageUrl
+                    imageUrl = imageUrl,
+                    idUser = "4ad064e9-910c-4531-a741-b8a7fe872e3b"
                 )
 
-                RetrofitClient.instance.createItem(request)
+                if (state.isEditMode && state.itemId != null) {
+                    RetrofitClient.instance.updateItem(state.itemId, request)
+                } else {
+                    RetrofitClient.instance.createItem(request)
+                }
 
                 // Success: clear state and navigate
                 _uiState.update { CreateItemUiState() }
                 onSuccess()
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Erro ao publicar: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = "Erro ao processar: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isPublishing = false) }
+            }
+        }
+    }
+
+    fun deleteItem(onSuccess: () -> Unit) {
+        val state = _uiState.value
+        val itemId = state.itemId ?: return
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPublishing = true) } // Using isPublishing as a generic loading state for actions
+            try {
+                RetrofitClient.instance.deleteItem(itemId)
+                _uiState.update { CreateItemUiState().copy(isDeleted = true) }
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Erro ao excluir: ${e.message}", isPublishing = false) }
             }
         }
     }
