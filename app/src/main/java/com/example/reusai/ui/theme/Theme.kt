@@ -23,6 +23,12 @@ private val DarkColorScheme = darkColorScheme(
     onTertiary = Slate50,
     onBackground = Slate50,
     onSurface = Slate50,
+    surfaceVariant = Slate700,
+    onSurfaceVariant = Slate200,
+    error = Red500,
+    onError = Color.White,
+    primaryContainer = Emerald700,
+    onPrimaryContainer = Emerald50
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -38,7 +44,11 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Slate900,
     outline = Slate200,
     surfaceVariant = Slate100,
-    onSurfaceVariant = Slate600
+    onSurfaceVariant = Slate600,
+    error = Red600,
+    onError = Color.White,
+    primaryContainer = Emerald50,
+    onPrimaryContainer = Emerald700
 )
 
 @Composable

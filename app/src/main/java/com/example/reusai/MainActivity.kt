@@ -16,6 +16,10 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,12 +30,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.reusai.ui.screens.CreateItemScreen
-import com.example.reusai.ui.screens.HomeScreen
-import com.example.reusai.ui.screens.LoginScreen
-import com.example.reusai.ui.screens.ProfileScreen
-import com.example.reusai.ui.screens.RegisterScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reusai.data.network.RetrofitClient
+import com.example.reusai.data.repository.ItemRepository
+import com.example.reusai.ui.screens.*
 import com.example.reusai.ui.theme.ReusaiTheme
+import com.example.reusai.ui.viewmodels.DetailsViewModel
+import com.example.reusai.ui.viewmodels.HomeViewModel
+import com.example.reusai.ui.viewmodels.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,12 +57,19 @@ fun ReusaiApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val repository = ItemRepository(RetrofitClient.instance)
+    val factory = ViewModelFactory(repository)
+
     val authRoutes = listOf(AppDestinations.LOGIN.route, AppDestinations.REGISTER.route)
-    val showBottomBar = currentRoute !in authRoutes && currentRoute != null
+    // Show bottom bar only on main screens, hide on Details, Login, Register
+    val showBottomBar = currentRoute != null && 
+                       currentRoute !in authRoutes && 
+                       !currentRoute.startsWith(AppDestinations.DETAILS.route)
 
     val bottomNavItems = listOf(
         AppDestinations.HOME,
         AppDestinations.PROPOSALS,
+        AppDestinations.PUBLISH,
         AppDestinations.CHAT,
         AppDestinations.PROFILE
     )
@@ -73,7 +86,7 @@ fun ReusaiApp() {
                 item(
                     icon = {
                         Icon(
-                            painter = painterResource(item.icon),
+                            imageVector = item.icon,
                             contentDescription = item.label,
                             modifier = Modifier.size(26.dp)
                         )
@@ -124,7 +137,46 @@ fun ReusaiApp() {
             }
 
             composable(AppDestinations.HOME.route) {
-                HomeScreen()
+                val homeViewModel: HomeViewModel = viewModel(factory = factory)
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    onItemClick = { itemId ->
+                        navController.navigate("${AppDestinations.DETAILS.route}/$itemId")
+                    }
+                )
+            }
+
+            composable(
+                route = "${AppDestinations.DETAILS.route}/{itemId}",
+                arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+                val detailsViewModel: DetailsViewModel = viewModel(factory = factory)
+                ItemDetailsScreen(
+                    itemId = itemId,
+                    viewModel = detailsViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onOfferTrade = {
+                        navController.navigate("${AppDestinations.TRADE_OFFER.route}/$itemId")
+                    }
+                )
+            }
+
+            composable(
+                route = "${AppDestinations.TRADE_OFFER.route}/{itemId}",
+                arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+                val detailsViewModel: DetailsViewModel = viewModel(factory = factory)
+                TradeOfferScreen(
+                    itemId = itemId,
+                    viewModel = detailsViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onConfirmTrade = {
+                        // For now just go back, maybe show a snackbar later
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(AppDestinations.PROFILE.route) {
@@ -182,20 +234,22 @@ fun ReusaiApp() {
 enum class AppDestinations(
     val route: String,
     val label: String,
-    val icon: Int,
+    val icon: ImageVector,
 ) {
-    HOME("home", "Início", R.drawable.ic_home),
-    PROPOSALS("proposals", "Propostas", R.drawable.ic_favorite),
-    CHAT("chat", "Chat", R.drawable.ic_account_box),
-    PROFILE("profile", "Perfil", R.drawable.ic_account_box),
-    PUBLISH("publish", "Publicar", R.drawable.ic_favorite),
-    REGISTER("register", "Cadastro", R.drawable.ic_account_box),
-    LOGIN("login", "Login", R.drawable.ic_account_box)
+    HOME("home", "Início", Icons.Default.Home),
+    DETAILS("details", "Detalhes", Icons.Default.Info),
+    PROPOSALS("proposals", "Propostas", Icons.Default.SwapHoriz),
+    PUBLISH("publish", "Publicar", Icons.Default.AddCircle),
+    CHAT("chat", "Chat", Icons.AutoMirrored.Filled.Chat),
+    PROFILE("profile", "Perfil", Icons.Default.Person),
+    REGISTER("register", "Cadastro", Icons.Default.PersonAdd),
+    LOGIN("login", "Login", Icons.AutoMirrored.Filled.Login),
+    TRADE_OFFER("trade_offer", "Oferecer Troca", Icons.Default.SwapHoriz)
 }
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
+    androidx.compose.material3.Text(
         text = "Hello $name!",
         modifier = modifier
     )
