@@ -42,6 +42,7 @@ import com.example.reusai.ui.viewmodels.ViewModelFactory
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RetrofitClient.init(this)
         enableEdgeToEdge()
         setContent {
             ReusaiTheme {
@@ -62,8 +63,8 @@ fun ReusaiApp() {
 
     val authRoutes = listOf(AppDestinations.LOGIN.route, AppDestinations.REGISTER.route)
     // Show bottom bar only on main screens, hide on Details, Login, Register
-    val showBottomBar = currentRoute != null && 
-                       currentRoute !in authRoutes && 
+    val showBottomBar = currentRoute != null &&
+                       currentRoute !in authRoutes &&
                        !currentRoute.startsWith(AppDestinations.DETAILS.route)
 
     val bottomNavItems = listOf(

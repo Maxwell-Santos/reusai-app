@@ -1,5 +1,7 @@
 package com.example.reusai.data.network
 
+import java.util.Date
+
 data class UserRequest(
     val username: String,
     val cep: String,
@@ -19,4 +21,13 @@ data class UserResponse(
 data class LoginRequest(
     val email: String,
     val password: String
+)
+
+data class AuthResponse(
+    val username: String,
+    val authenticated: Boolean,
+    val created: Date,
+    val expiration: Date,
+    val accessToken: String,
+    val refreshToken: String
 )

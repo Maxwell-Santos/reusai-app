@@ -1,31 +1,51 @@
 package com.example.reusai.data.repository
 
+import com.example.reusai.data.network.AuthResponse
 import com.example.reusai.data.network.LoginRequest
+import com.example.reusai.data.network.RetrofitClient
+import com.example.reusai.data.network.ReusaiApiService
 import com.example.reusai.data.network.UserRequest
 import com.example.reusai.data.network.UserResponse
-import kotlinx.coroutines.delay
 
-class AuthRepository {
-    suspend fun login(loginRequest: LoginRequest): Result<UserResponse> {
-        delay(1500)
+class AuthRepository(
+    private val apiService: ReusaiApiService = RetrofitClient.instance
+) {
+    suspend fun login(loginRequest: LoginRequest): Result<AuthResponse> {
+        return try {
+            val response = apiService.login(loginRequest)
+            RetrofitClient.getTokenManager()?.saveTokens(response.accessToken, response.refreshToken)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
-        return if (loginRequest.email == "max@gmail.com" && loginRequest.password == "123") {
-            Result.success(
-                UserResponse(
-                    id = "1",
-                    username = "Max",
-                    email = "max@gmail.com",
-                    token = "mock-token-123"
-                )
-            )
-        } else {
-            Result.failure(Exception("Invalid email or password"))
+    suspend fun register(userRequest: UserRequest): Result<UserResponse> {
+        return try {
+            val response = apiService.createUser(userRequest)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
     suspend fun logout(): Result<Unit> {
-        delay(500) // Simulate network/io delay
-        // Here you would clear tokens from DataStore/SharedPreferences
-        return Result.success(Unit)
+        return try {
+            apiService.logout()
+            RetrofitClient.getTokenManager()?.clearTokens()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun refreshToken(username: String): Result<AuthResponse> {
+        return try {
+            val response = apiService.refreshToken(username)
+            RetrofitClient.getTokenManager()?.saveTokens(response.accessToken, response.refreshToken)
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

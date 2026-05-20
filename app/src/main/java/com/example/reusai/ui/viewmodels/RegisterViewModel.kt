@@ -116,7 +116,7 @@ class RegisterViewModel(
                 val state = _uiState.value
                 var profilePhotoUrl: String? = null
 
-                // 1. Upload photo if exists
+
                 state.profilePhotoUri?.let { uri ->
                     val file = File(uri.path ?: throw IOException("Caminho da imagem inválido"))
                     val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
@@ -125,7 +125,7 @@ class RegisterViewModel(
                     profilePhotoUrl = uploadResponse.url
                 }
 
-                // 2. Create user
+
                 val request = UserRequest(
                     username = state.username,
                     cep = state.cep,
@@ -134,11 +134,14 @@ class RegisterViewModel(
                     photoUrl = profilePhotoUrl
                 )
 
-//                val result = authRepository.register(request)
-                RetrofitClient.instance.createUser(request)
-                _uiState.update { it.copy(isSuccess = true) }
-                onSuccess()
+                val result = authRepository.register(request)
 
+                if (result.isSuccess) {
+                    _uiState.update { it.copy(isSuccess = true) }
+                    onSuccess()
+                } else {
+                    _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message ?: "Erro ao criar conta") }
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Erro inesperado: ${e.message}") }
             } finally {
