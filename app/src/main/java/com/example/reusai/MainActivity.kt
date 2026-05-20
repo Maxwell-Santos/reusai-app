@@ -173,7 +173,7 @@ fun ReusaiApp() {
                     itemId = itemId,
                     viewModel = detailsViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onConfirmTrade = {
+                    onTradeSuccess = {
                         // For now just go back, maybe show a snackbar later
                         navController.popBackStack()
                     }
