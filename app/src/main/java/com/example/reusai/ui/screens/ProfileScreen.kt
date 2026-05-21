@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Star
@@ -43,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -134,65 +134,72 @@ fun ProfileScreen(
         },
         floatingActionButtonPosition = FabPosition.Center
     ) { padding ->
-        LazyColumn(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading && uiState.items.isNotEmpty(),
+            onRefresh = { viewModel.fetchItems() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item {
-                ProfileHeaderCard(
-                    name = uiState.userName,
-                    location = uiState.location,
-                    photoUrl = uiState.profilePhotoUrl,
-                    swaps = uiState.completedSwaps,
-                    activeItems = uiState.activeItems,
-                    reputation = uiState.reputation
-                )
-            }
-
-            item {
-                SectionHeader(
-                    title = "Últimas avaliações",
-                    actionText = "Ver todas",
-                    onActionClick = onSeeAllReviews
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                uiState.recentReviews.forEach { review ->
-                    ReviewCard(review)
-                }
-            }
-
-            item {
-                SectionHeader(
-                    title = "Meus Itens (${uiState.items.size})",
-                    actionText = "Adicionar novo",
-                    onActionClick = onAddNewItem
-                )
-            }
-
-            if (uiState.isLoading) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Emerald500)
-                    }
-                }
-            } else if (uiState.items.isEmpty()) {
-                item {
-                    EmptyItemsState(onAddNewItem)
-                }
-            } else {
-                items(uiState.items) { item ->
-                    ItemCard(
-                        item = item,
-                        onEdit = { onEditItem(item.id) }
+                    ProfileHeaderCard(
+                        name = uiState.userName,
+                        location = uiState.location,
+                        photoUrl = uiState.profilePhotoUrl,
+                        swaps = uiState.completedSwaps,
+                        activeItems = uiState.activeItems,
+                        reputation = uiState.reputation
                     )
                 }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(80.dp)) // Space for FAB and Bottom Nav
+                item {
+                    SectionHeader(
+                        title = "Últimas avaliações",
+                        actionText = "Ver todas",
+                        onActionClick = onSeeAllReviews
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    uiState.recentReviews.forEach { review ->
+                        ReviewCard(review)
+                    }
+                }
+
+                item {
+                    SectionHeader(
+                        title = "Meus Itens (${uiState.items.size})",
+                        actionText = "Adicionar novo",
+                        onActionClick = onAddNewItem
+                    )
+                }
+
+                if (uiState.isLoading && uiState.items.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Emerald500)
+                        }
+                    }
+                } else if (uiState.items.isEmpty()) {
+                    item {
+                        EmptyItemsState(onAddNewItem)
+                    }
+                } else {
+                    items(uiState.items) { item ->
+                        ItemCard(
+                            item = item,
+                            onEdit = { onEditItem(item.id) }
+                        )
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(80.dp)) // Space for FAB and Bottom Nav
+                }
             }
         }
     }
