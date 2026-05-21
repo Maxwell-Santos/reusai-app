@@ -30,13 +30,14 @@ class AuthRepository(
     }
 
     suspend fun logout(): Result<Unit> {
-        return try {
+        try {
             apiService.logout()
-            RetrofitClient.getTokenManager()?.clearTokens()
-            Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            // We ignore API failures on logout to ensure the user can always
+            // leave the session locally.
         }
+        RetrofitClient.getTokenManager()?.clearTokens()
+        return Result.success(Unit)
     }
 
     suspend fun refreshToken(username: String): Result<AuthResponse> {
