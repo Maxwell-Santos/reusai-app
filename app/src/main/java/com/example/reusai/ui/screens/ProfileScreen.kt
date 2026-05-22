@@ -59,7 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.reusai.data.network.ItemResponse
+import com.example.reusai.data.repository.ItemUIModel
 import com.example.reusai.ui.components.LogoutButton
 import com.example.reusai.ui.theme.Emerald500
 import com.example.reusai.ui.theme.Slate900
@@ -74,7 +74,7 @@ fun ProfileScreen(
     onSettingsClick: () -> Unit = {},
     onSeeAllReviews: () -> Unit = {},
     onEditItem: (String) -> Unit = {},
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -136,7 +136,7 @@ fun ProfileScreen(
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading && uiState.items.isNotEmpty(),
-            onRefresh = { viewModel.fetchItems() },
+            onRefresh = { viewModel.loadUserItems() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -379,7 +379,7 @@ fun ReviewCard(review: ReviewUiModel) {
 
 @Composable
 fun ItemCard(
-    item: ItemResponse,
+    item: ItemUIModel,
     onEdit: () -> Unit
 ) {
     Card(

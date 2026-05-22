@@ -31,3 +31,8 @@ data class AuthResponse(
     val accessToken: String,
     val refreshToken: String
 )
+
+data class UserSession(
+    val id: String,
+    val email: String
+)

@@ -25,6 +25,9 @@ interface ItemsApi {
 
     @DELETE("item/{itemId}")
     suspend fun deleteItem(@Path("itemId") itemId: String)
+
+    @GET("item/user/{userId}")
+    suspend fun getItemsByUser(@Path("userId") userId: String): List<ItemResponse>
 }
 
 interface AuthApi {
@@ -68,7 +71,7 @@ class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.15.8:8080/"
+    private const val BASE_URL = "http://192.168.15.7:8080/"
     private var tokenManager: TokenManager? = null
 
     fun init(context: Context) {

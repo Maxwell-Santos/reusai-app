@@ -2,6 +2,7 @@ package com.example.reusai.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.reusai.data.network.TokenManager
 import com.example.reusai.data.repository.ItemRepository
 import com.example.reusai.data.repository.ItemUIModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,10 @@ data class DetailsUiState(
     val isTradeSuccess: Boolean = false
 )
 
-class DetailsViewModel(private val repository: ItemRepository) : ViewModel() {
+class DetailsViewModel(
+    private val repository: ItemRepository,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailsUiState())
     val uiState: StateFlow<DetailsUiState> = _uiState.asStateFlow()
@@ -45,38 +49,18 @@ class DetailsViewModel(private val repository: ItemRepository) : ViewModel() {
 
     fun loadUserItems() {
         viewModelScope.launch {
-            // Mocking user items for now as well
-            val mockUserItems = listOf(
-                ItemUIModel(
-                    id = "u1",
-                    title = "Teclado Mecânico RGB",
-                    category = "Eletrônicos",
-                    description = "Teclado mecânico com switches azuis, pouco tempo de uso.",
-                    imageUrl = "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?q=80&w=500",
-                    distance = "Sua localização",
-                    rating = 5.0,
-                    ownerName = "Você (Mariana)",
-                    ownerPhotoUrl = "https://i.pravatar.cc/150?u=mariana",
-                    ownerRating = 4.9,
-                    ownerPlatformTime = "Na plataforma há 1 ano",
-                    ownerTradesCount = 23
-                ),
-                ItemUIModel(
-                    id = "u2",
-                    title = "Mouse Gamer 12000 DPI",
-                    category = "Eletrônicos",
-                    description = "Mouse ergonômico com pesos ajustáveis.",
-                    imageUrl = "https://images.unsplash.com/photo-1527661591475-527312dd65f5?q=80&w=500",
-                    distance = "Sua localização",
-                    rating = 4.7,
-                    ownerName = "Você (Mariana)",
-                    ownerPhotoUrl = "https://i.pravatar.cc/150?u=mariana",
-                    ownerRating = 4.9,
-                    ownerPlatformTime = "Na plataforma há 1 ano",
-                    ownerTradesCount = 23
-                )
-            )
-            _uiState.update { it.copy(userItems = mockUserItems) }
+            val userSession = tokenManager.getUserSession()
+            if (userSession != null) {
+                _uiState.update { it.copy(isLoading = true) }
+                try {
+                    val userItems = repository.getItemsByUser(userSession.id)
+                    _uiState.update { it.copy(userItems = userItems, isLoading = false) }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(isLoading = false, error = e.message) }
+                }
+            } else {
+                _uiState.update { it.copy(error = "Usuário não autenticado") }
+            }
         }
     }
 

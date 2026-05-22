@@ -19,8 +19,13 @@ data class ItemUIModel(
 )
 
 class ItemRepository(private val apiService: ReusaiApiService) {
-// Is missing: status, availableToChange
-    // Mock data for now as requested
+    
+    companion object {
+        // Shared state across all instances to maintain cache during navigation
+        private val realItems = mutableListOf<ItemUIModel>()
+    }
+
+    // Mock data for fallback
     private val mockItems = listOf(
         ItemUIModel(
             id = "1",
@@ -81,11 +86,72 @@ class ItemRepository(private val apiService: ReusaiApiService) {
     )
 
     suspend fun getExploreItems(): List<ItemUIModel> {
-        // In a real scenario, we would call apiService.getItems() and map to UI model
-        return mockItems
+        try {
+            val items: List<ItemResponse> = apiService.getItems()
+            val mappedItems = items.map { item ->
+                ItemUIModel(
+                    id = item.id,
+                    title = item.title,
+                    category = item.category,
+                    description = item.description,
+                    imageUrl = item.imageUrl,
+                    distance = "A 4.0 km",
+                    rating = 4.8,
+                    ownerName = "Marcos Souza",
+                    ownerPhotoUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200",
+                    ownerRating = 4.9,
+                    ownerPlatformTime = "Na plataforma há 6 meses",
+                    ownerTradesCount = 8
+                )
+            }
+            realItems.clear()
+            realItems.addAll(mappedItems)
+            return realItems
+        } catch (e: Exception) {
+            // Fallback to cached items, or mock items if cache is empty
+            return if (realItems.isNotEmpty()) realItems else mockItems
+        }
     }
 
     suspend fun getItemById(id: String): ItemUIModel? {
-        return mockItems.find { it.id == id }
+        // 1. Search in current cache (API data)
+        realItems.find { it.id == id }?.let { return it }
+        
+        // 2. Search in mock items
+//        mockItems.find { it.id == id }?.let { return it }
+
+        // 3. If cache is empty, try one fetch from API
+        if (realItems.isEmpty()) {
+            getExploreItems()
+            // Search again after fetch
+            realItems.find { it.id == id }?.let { return it }
+            return mockItems.find { it.id == id }
+        }
+
+        return null
+    }
+
+    suspend fun getItemsByUser(userId: String): List<ItemUIModel> {
+        return try {
+            val items = apiService.getItemsByUser(userId)
+            items.map { item ->
+                ItemUIModel(
+                    id = item.id,
+                    title = item.title,
+                    category = item.category,
+                    description = item.description,
+                    imageUrl = item.imageUrl,
+                    distance = "Sua localização",
+                    rating = 5.0,
+                    ownerName = "Você",
+                    ownerPhotoUrl = "", // Could be fetched from user session if needed
+                    ownerRating = 5.0,
+                    ownerPlatformTime = "Na plataforma",
+                    ownerTradesCount = 0
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 }
