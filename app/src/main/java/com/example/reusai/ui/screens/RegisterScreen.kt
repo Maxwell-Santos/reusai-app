@@ -70,8 +70,15 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+
+    androidx.compose.runtime.LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated) {
+            onNavigateBack()
+        }
+    }
 
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()

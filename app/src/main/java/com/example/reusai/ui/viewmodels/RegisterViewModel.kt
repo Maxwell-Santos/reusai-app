@@ -46,6 +46,20 @@ class RegisterViewModel(
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    init {
+        checkAuthStatus()
+    }
+
+    private fun checkAuthStatus() {
+        val token = RetrofitClient.getTokenManager()?.getAccessToken()
+        if (!token.isNullOrBlank()) {
+            _isAuthenticated.value = true
+        }
+    }
+
     fun onNameChange(newName: String) {
         _uiState.update { it.copy(username = newName, nameError = null) }
     }

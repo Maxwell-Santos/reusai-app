@@ -37,7 +37,14 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated) {
+            onLoginSuccess()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background

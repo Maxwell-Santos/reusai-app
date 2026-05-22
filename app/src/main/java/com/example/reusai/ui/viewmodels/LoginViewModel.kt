@@ -27,6 +27,20 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    init {
+        checkAuthStatus()
+    }
+
+    private fun checkAuthStatus() {
+        val token = com.example.reusai.data.network.RetrofitClient.getTokenManager()?.getAccessToken()
+        if (!token.isNullOrBlank()) {
+            _isAuthenticated.value = true
+        }
+    }
+
     fun onEmailChange(newEmail: String) {
         _uiState.update { it.copy(email = newEmail, emailError = null) }
     }
