@@ -49,9 +49,9 @@ fun SearchBar(
                 .height(56.dp)
                 .clip(RoundedCornerShape(16.dp)),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
             )
@@ -61,7 +61,7 @@ fun SearchBar(
             onClick = onFilterClick,
             modifier = Modifier
                 .size(56.dp)
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
         ) {
             Icon(
                 Icons.Default.FilterList, 

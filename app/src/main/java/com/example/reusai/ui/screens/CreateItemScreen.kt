@@ -300,7 +300,7 @@ fun CreateItemTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
     )
 }
@@ -726,7 +726,7 @@ fun BottomActionButton(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surface
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Button(
             onClick = onClick,

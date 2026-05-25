@@ -71,7 +71,7 @@ fun ItemDetailsScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Button(
                         onClick = onOfferTrade,
@@ -125,7 +125,7 @@ fun ItemDetailsScreen(
                         IconButton(
                             onClick = onNavigateBack,
                             modifier = Modifier.background(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
+                                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f), 
                                 CircleShape
                             )
                         ) {
@@ -148,7 +148,7 @@ fun ItemDetailsScreen(
                                     context.startActivity(shareIntent)
                                 },
                                 modifier = Modifier.background(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
+                                    MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f), 
                                     CircleShape
                                 )
                             ) {
@@ -162,7 +162,7 @@ fun ItemDetailsScreen(
                             IconButton(
                                 onClick = { viewModel.toggleFavorite() },
                                 modifier = Modifier.background(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), 
+                                    MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f),
                                     CircleShape
                                 )
                             ) {

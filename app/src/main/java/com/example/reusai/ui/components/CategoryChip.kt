@@ -21,8 +21,8 @@ fun CategoryChip(
     Surface(
         modifier = Modifier.clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
-        contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimaryContainer
+        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
+        contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimaryContainer
     ) {
         Text(
             text = label,
