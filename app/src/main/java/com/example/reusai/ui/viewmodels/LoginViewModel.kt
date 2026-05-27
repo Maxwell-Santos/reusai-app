@@ -35,9 +35,12 @@ class LoginViewModel(
     }
 
     private fun checkAuthStatus() {
-        val token = com.example.reusai.data.network.RetrofitClient.getTokenManager()?.getAccessToken()
-        if (!token.isNullOrBlank()) {
+        val tokenManager = com.example.reusai.data.network.RetrofitClient.getTokenManager()
+        if (tokenManager?.isTokenValid() == true) {
             _isAuthenticated.value = true
+        } else {
+            tokenManager?.clearTokens()
+            _isAuthenticated.value = false
         }
     }
 

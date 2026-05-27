@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.reusai.data.network.RetrofitClient
 import com.example.reusai.data.network.TokenManager
+import com.example.reusai.data.repository.AuthRepository
 import com.example.reusai.data.repository.ItemRepository
 import com.example.reusai.ui.screens.CreateItemScreen
 import com.example.reusai.ui.screens.HomeScreen
@@ -72,9 +73,17 @@ fun ReusaiApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val repository = ItemRepository(RetrofitClient.instance)
+    val itemRepository = ItemRepository(RetrofitClient.instance)
+    val proposalRepository = ProposalRepository(RetrofitClient.instance)
+    val authRepository = AuthRepository(RetrofitClient.instance)
     val tokenManager = RetrofitClient.getTokenManager() ?: TokenManager(LocalContext.current)
-    val factory = ViewModelFactory(repository, tokenManager)
+    val factory = ViewModelFactory(itemRepository, proposalRepository, authRepository, tokenManager)
+
+    val startDestination = if (tokenManager.isTokenValid()) {
+        AppDestinations.HOME.route
+    } else {
+        AppDestinations.LOGIN.route
+    }
 
     val authRoutes = listOf(AppDestinations.LOGIN.route, AppDestinations.REGISTER.route)
     // Show bottom bar only on main screens, hide on Details, Login, Register

@@ -66,7 +66,13 @@ class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
             }
         }
 
-        return chain.proceed(requestBuilder.build())
+        val response = chain.proceed(requestBuilder.build())
+
+        if (response.code == 401) {
+            tokenManager.clearTokens()
+        }
+
+        return response
     }
 }
 

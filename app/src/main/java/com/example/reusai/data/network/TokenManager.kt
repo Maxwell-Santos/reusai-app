@@ -28,12 +28,34 @@ class TokenManager(context: Context) {
             if (parts.size < 2) return null
             val payload = String(Base64.decode(parts[1], Base64.URL_SAFE))
             val json = JSONObject(payload)
+            
+            // Verifica se o token expirou
+            val exp = json.optLong("exp", 0)
+            if (exp > 0 && System.currentTimeMillis() / 1000 > exp) {
+                clearTokens()
+                return null
+            }
+
             UserSession(
                 id = json.optString("sub", ""),
                 email = json.optString("email", "") // Assumindo que o email está no claim 'email' ou similar
             )
         } catch (e: Exception) {
             null
+        }
+    }
+
+    fun isTokenValid(): Boolean {
+        val token = getAccessToken() ?: return false
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return false
+            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE))
+            val json = JSONObject(payload)
+            val exp = json.optLong("exp", 0)
+            exp == 0L || System.currentTimeMillis() / 1000 < exp
+        } catch (e: Exception) {
+            false
         }
     }
 
