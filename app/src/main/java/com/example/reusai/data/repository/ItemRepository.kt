@@ -15,7 +15,8 @@ data class ItemUIModel(
     val ownerPhotoUrl: String,
     val ownerRating: Double,
     val ownerPlatformTime: String,
-    val ownerTradesCount: Int
+    val ownerTradesCount: Int,
+    val idUser: String = ""
 )
 
 class ItemRepository(private val apiService: ReusaiApiService) {
@@ -95,6 +96,7 @@ class ItemRepository(private val apiService: ReusaiApiService) {
                     category = item.category,
                     description = item.description,
                     imageUrl = item.imageUrl,
+                    idUser = item.idUser,
                     distance = "A 4.0 km",
                     rating = 4.8,
                     ownerName = "Marcos Souza",

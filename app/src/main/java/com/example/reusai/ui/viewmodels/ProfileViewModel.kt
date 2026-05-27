@@ -18,9 +18,9 @@ data class ProfileUiState(
     val items: List<ItemUIModel> = emptyList(),
     val errorMessage: String? = null,
     // Mocked user data as per requirements
-    val userName: String = "Você (Mariana)",
+    val userName: String = "",
     val location: String = "São Paulo, SP",
-    val profilePhotoUrl: String = "https://i.pravatar.cc/150?u=mariana",
+    val profilePhotoUrl: String = "https://www.vozdobico.com.br/opiniao-ideias-e-debates/criar-perfil-fake-e-crime/attachment/perfil-sem-foto-fake/",
     val completedSwaps: Int = 23,
     val activeItems: Int = 4,
     val reputation: Double = 4.9,
@@ -44,14 +44,29 @@ data class ReviewUiModel(
 class ProfileViewModel(
     private val repository: ItemRepository,
     private val tokenManager: TokenManager,
-    private val authRepository: AuthRepository = AuthRepository()
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
+        loadUserProfile()
         loadUserItems()
+    }
+
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            val userSession = tokenManager.getUserSession()
+            if (userSession != null) {
+                authRepository.getUser(userSession.id).onSuccess { user ->
+                    _uiState.update { it.copy(
+                        userName = user.username,
+                        profilePhotoUrl = user.photoUrl ?: ""
+                    ) }
+                }
+            }
+        }
     }
 
     fun logout() {

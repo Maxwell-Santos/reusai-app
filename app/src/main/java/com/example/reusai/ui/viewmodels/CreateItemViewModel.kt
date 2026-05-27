@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.reusai.data.network.ItemRequest
 import com.example.reusai.data.network.RetrofitClient
 import com.example.reusai.data.network.StatusEnum
+import com.example.reusai.data.network.TokenManager
+import com.example.reusai.data.repository.ItemRepository
 import com.example.reusai.ui.screens.CreateItemStep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +45,10 @@ data class CreateItemUiState(
     val isDeleted: Boolean = false
 )
 
-class CreateItemViewModel : ViewModel() {
+class CreateItemViewModel(
+    private val repository: ItemRepository,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateItemUiState())
     val uiState: StateFlow<CreateItemUiState> = _uiState.asStateFlow()
@@ -69,7 +74,7 @@ class CreateItemViewModel : ViewModel() {
                         isNeverUsed = item.status == StatusEnum.NEW.name,
                         photos = listOf(Uri.parse(item.imageUrl)), // Assuming one image for now as per ItemResponse
                         isLoading = false,
-                        idUser = "4ad064e9-910c-4531-a741-b8a7fe872e3b"
+                        idUser = item.idUser
                     )
                 }
             } catch (e: Exception) {
@@ -175,6 +180,8 @@ class CreateItemViewModel : ViewModel() {
                     uploadResponse.url
                 }
 
+                val currentUserId = tokenManager.getUserSession()?.id ?: ""
+
                 // 2. Create or Update the item
                 val request = ItemRequest(
                     title = state.title,
@@ -183,7 +190,7 @@ class CreateItemViewModel : ViewModel() {
                     availableToChange = state.isAvailableForTrade,
                     status = if (state.isNeverUsed) StatusEnum.NEW else StatusEnum.USED,
                     imageUrl = imageUrl,
-                    idUser = "4ad064e9-910c-4531-a741-b8a7fe872e3b"
+                    idUser = currentUserId
                 )
 
                 if (state.isEditMode && state.itemId != null) {

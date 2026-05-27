@@ -41,17 +41,20 @@ import com.example.reusai.data.network.RetrofitClient
 import com.example.reusai.data.network.TokenManager
 import com.example.reusai.data.repository.AuthRepository
 import com.example.reusai.data.repository.ItemRepository
+import com.example.reusai.data.repository.ProposalRepository
 import com.example.reusai.ui.screens.CreateItemScreen
 import com.example.reusai.ui.screens.HomeScreen
 import com.example.reusai.ui.screens.ItemDetailsScreen
 import com.example.reusai.ui.screens.LoginScreen
 import com.example.reusai.ui.screens.ProfileScreen
+import com.example.reusai.ui.screens.ProposalScreen
 import com.example.reusai.ui.screens.RegisterScreen
 import com.example.reusai.ui.screens.TradeOfferScreen
 import com.example.reusai.ui.theme.ReusaiTheme
 import com.example.reusai.ui.viewmodels.DetailsViewModel
 import com.example.reusai.ui.viewmodels.HomeViewModel
 import com.example.reusai.ui.viewmodels.ProfileViewModel
+import com.example.reusai.ui.viewmodels.ProposalViewModel
 import com.example.reusai.ui.viewmodels.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
@@ -95,7 +98,7 @@ fun ReusaiApp() {
         AppDestinations.HOME,
         AppDestinations.PROPOSALS,
         AppDestinations.PUBLISH,
-        AppDestinations.CHAT,
+//        AppDestinations.CHAT,
         AppDestinations.PROFILE
     )
 
@@ -138,11 +141,12 @@ fun ReusaiApp() {
     ) {
         NavHost(
             navController = navController,
-            startDestination = AppDestinations.LOGIN.route,
+            startDestination = startDestination,
             modifier = Modifier.fillMaxSize()
         ) {
             composable(AppDestinations.LOGIN.route) {
                 LoginScreen(
+                    viewModel = viewModel(factory = factory),
                     onLoginSuccess = {
                         navController.navigate(AppDestinations.HOME.route) {
                             popUpTo(AppDestinations.LOGIN.route) { inclusive = true }
@@ -156,6 +160,7 @@ fun ReusaiApp() {
 
             composable(AppDestinations.REGISTER.route) {
                 RegisterScreen(
+                    viewModel = viewModel(factory = factory),
                     onNavigateBack = { navController.popBackStack() },
                     onLoginClick = { navController.popBackStack() }
                 )
@@ -242,13 +247,15 @@ fun ReusaiApp() {
                 CreateItemScreen(
                     isEditMode = isEditMode,
                     itemId = itemId,
+                    viewModel = viewModel(factory = factory),
                     onNavigateBack = { navController.popBackStack() },
                     onPublish = { navController.popBackStack() }
                 )
             }
 
             composable(AppDestinations.PROPOSALS.route) {
-                Greeting(name = "Propostas")
+                val proposalViewModel: ProposalViewModel = viewModel(factory = factory)
+                ProposalScreen(viewModel = proposalViewModel)
             }
 
             composable(AppDestinations.CHAT.route) {
@@ -276,7 +283,7 @@ enum class AppDestinations(
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Text(
+    Text(
         text = "Hello $name!",
         modifier = modifier
     )

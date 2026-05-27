@@ -44,6 +44,9 @@ interface AuthApi {
 interface UserApi {
     @POST("user")
     suspend fun createUser(@Body user: UserRequest): UserResponse
+
+    @GET("user/{userId}")
+    suspend fun getUser(@Path("userId") userId: String): UserResponse
 }
 
 interface ImageApi {
@@ -52,7 +55,24 @@ interface ImageApi {
     suspend fun uploadImage(@Part image: MultipartBody.Part): UploadImageResponse
 }
 
-interface ReusaiApiService : ItemsApi, AuthApi, UserApi, ImageApi
+interface ProposalApi {
+    @GET("proposal/received/{userId}")
+    suspend fun getProposalsReceived(@Path("userId") userId: String): List<ProposalResponse>
+
+    @GET("proposal/sent/{userId}")
+    suspend fun getProposalsSent(@Path("userId") userId: String): List<ProposalResponse>
+
+    @POST("proposal")
+    suspend fun createProposal(@Body proposal: ProposalRequest): ProposalResponse
+
+    @POST("proposal/received/accept/{proposalId}")
+    suspend fun acceptProposal(@Path("proposalId") proposalId: String): ProposalResponse
+
+    @POST("proposal/received/reject/{proposalId}")
+    suspend fun rejectProposal(@Path("proposalId") proposalId: String): ProposalResponse
+}
+
+interface ReusaiApiService : ItemsApi, AuthApi, UserApi, ImageApi, ProposalApi
 
 class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -60,7 +80,9 @@ class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
         val requestBuilder = originalRequest.newBuilder()
 
         val path = originalRequest.url.encodedPath
-        if (!path.contains("auth/signin")) {
+        val isSignin = path.contains("auth/signin")
+        val isPostPhoto = path.contains("upload-image") && originalRequest.method == "POST"
+        if (!isSignin && !isPostPhoto) {
             tokenManager.getAccessToken()?.let {
                 requestBuilder.addHeader("Authorization", "Bearer $it")
             }

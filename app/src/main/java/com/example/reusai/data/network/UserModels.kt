@@ -14,6 +14,7 @@ data class UserResponse(
     val id: String,
     val username: String,
     val email: String,
+    val photoUrl: String? = null,
     val message: String? = null,
     val token: String? = null
 )
