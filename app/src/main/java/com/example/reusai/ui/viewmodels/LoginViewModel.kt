@@ -56,7 +56,8 @@ class LoginViewModel(
         var isValid = true
         val currentState = _uiState.value
 
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(currentState.email).matches()) {
+        val emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$".toRegex()
+        if (!emailRegex.matches(currentState.email)) {
             _uiState.update { it.copy(emailError = "E-mail inválido") }
             isValid = false
         }

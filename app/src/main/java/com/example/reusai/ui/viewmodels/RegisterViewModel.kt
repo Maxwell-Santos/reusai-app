@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Patterns.EMAIL_ADDRESS
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reusai.data.network.RetrofitClient
@@ -108,7 +109,8 @@ class RegisterViewModel(
             isValid = false
         }
 
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(currentState.email).matches()) {
+        val emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$".toRegex()
+        if (!emailRegex.matches(currentState.email)) {
             _uiState.update { it.copy(emailError = "E-mail inválido") }
             isValid = false
         }
